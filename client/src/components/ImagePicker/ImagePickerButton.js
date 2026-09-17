@@ -1,49 +1,70 @@
-import { Alert, Pressable, Text, StyleSheet } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import styles from "../../styles/ImagePickerButton.styles";
 
-export default function ImagePickerButton({ onImageSelected }) {
-    const pickImage = async () => {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if(!permission.granted){
-            Alert.alert("Permission Required", "Please allow access to the Photos.")
-            return;
-        }
-    
+export default function ImagePickerButton({ onImageSelected = () => {} }) {
+  const pickFromGallery = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 0.0
-        });
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Please allow access to your photos.");
+        return;
+      }
 
-        if(!result.canceled){
-            onImageSelected(result.assets[0])
-        }
-    };
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    return (
-        <Pressable style={styles.button} onPress={pickImage}>
-            <Text style={styles.Text}>
-                Choose From gallery
-            </Text>
-        </Pressable>
-    )
-};
+      if (!result.canceled && result.assets?.length > 0) {
+        onImageSelected(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Gallery Picker Error:", error);
+      Alert.alert("Error", "Could not select an image.");
+    }
+  };
 
+  const captureFromCamera = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
 
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: "#2E7D32",
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    marginTop: 12,
-  },
+      if (!permission.granted) {
+        Alert.alert(
+          "Camera Permission Required",
+          "Please allow camera access to take a photo."
+        );
+        return;
+      }
 
-  text: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        onImageSelected(result.assets[0]);
+      }
+    } catch (error) {
+      console.error("Camera Error:", error);
+      Alert.alert("Error", "Could not open the camera.");
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Pressable style={styles.galleryButton} onPress={pickFromGallery}>
+        <Text style={styles.buttonText}>Choose from gallery</Text>
+      </Pressable>
+
+      <Pressable style={styles.cameraButton} onPress={captureFromCamera}>
+        <Text style={styles.buttonText}>Analyze from camera</Text>
+      </Pressable>
+    </View>
+  );
+}
